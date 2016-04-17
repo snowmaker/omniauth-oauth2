@@ -64,14 +64,20 @@ module OmniAuth
       end
 
       def callback_phase # rubocop:disable AbcSize, CyclomaticComplexity, MethodLength, PerceivedComplexity
+        puts "callback_phase"
         error = request.params["error_reason"] || request.params["error"]
         if error
+          puts "error!"
+          puts error
           fail!(error, CallbackError.new(request.params["error"], request.params["error_description"] || request.params["error_reason"], request.params["error_uri"]))
         elsif false && !options.provider_ignores_state && (request.params["state"].to_s.empty? || request.params["state"] != session.delete("omniauth.state"))
+          puts "csrf problem"
           fail!(:csrf_detected, CallbackError.new(:csrf_detected, "CSRF detected"))
         else
+          puts "building access token"
           self.access_token = build_access_token
           self.access_token = access_token.refresh! if access_token.expired?
+          puts "access_token: #{self.access_token.inspect}"
           super
         end
       rescue ::OAuth2::Error, CallbackError => e
@@ -85,8 +91,14 @@ module OmniAuth
     protected
 
       def build_access_token
+        puts "build_access_token"
         verifier = request.params["code"]
-        client.auth_code.get_token(verifier, {:redirect_uri => callback_url}.merge(token_params.to_hash(:symbolize_keys => true)), deep_symbolize(options.auth_token_params))
+        puts verifier
+        puts {:redirect_uri => callback_url}.merge(token_params.to_hash(:symbolize_keys => true))
+        puts deep_symbolize(options.auth_token_params)
+        result = client.auth_code.get_token(verifier, {:redirect_uri => callback_url}.merge(token_params.to_hash(:symbolize_keys => true)), deep_symbolize(options.auth_token_params))
+        puts "result: #{result.inspect}"
+        result
       end
 
       def deep_symbolize(options)
